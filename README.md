@@ -8,6 +8,8 @@ This integration was created as an inverter-focused analogue of the battery inte
 - `wifilocalMonitor:get dev basice infor`
 - `wifilocalMonitor:get dev set infor`
 
+It exposes main runtime telemetry sensors and a set of **Diagnostic** sensors for inverter settings (parsed from `dev set infor`).
+
 ## Install (HACS)
 
 1. In HACS → **Integrations** → **⋮** → **Custom repositories**
