@@ -1,0 +1,9 @@
+{
+  "name": "Felicity Inverter",
+  "content_in_root": false,
+  "domains": [
+    "felicity_inverter"
+  ],
+  "iot_class": "local_polling",
+  "render_readme": true
+}
