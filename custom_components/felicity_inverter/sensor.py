@@ -197,6 +197,131 @@ SENSOR_DESCRIPTIONS: tuple[FelicitySensorDescription, ...] = (
         icon="mdi:chip",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    # --- Settings (dev set infor) ---
+    FelicitySensorDescription(
+        key="settings_summary",
+        name="Settings Summary",
+        icon="mdi:tune",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="set_operating_mode",
+        name="Setting Operating Mode",
+        icon="mdi:cog-outline",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="set_ac_nominal_voltage",
+        name="Setting AC Nominal Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        icon="mdi:flash",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
+    ),
+    FelicitySensorDescription(
+        key="set_grid_over_voltage",
+        name="Setting Grid Over Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        icon="mdi:arrow-up-bold",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
+    ),
+    FelicitySensorDescription(
+        key="set_grid_under_voltage",
+        name="Setting Grid Under Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        icon="mdi:arrow-down-bold",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
+    ),
+    FelicitySensorDescription(
+        key="set_grid_over_frequency",
+        name="Setting Grid Over Frequency",
+        native_unit_of_measurement="Hz",
+        icon="mdi:waveform",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=2,
+    ),
+    FelicitySensorDescription(
+        key="set_grid_under_frequency",
+        name="Setting Grid Under Frequency",
+        native_unit_of_measurement="Hz",
+        icon="mdi:waveform",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=2,
+    ),
+    FelicitySensorDescription(
+        key="set_battery_type",
+        name="Setting Battery Type",
+        icon="mdi:battery-outline",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="set_battery_count",
+        name="Setting Battery Count",
+        icon="mdi:numeric",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="set_battery_charge_voltage",
+        name="Setting Battery Charge Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        icon="mdi:battery-charging",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
+    ),
+    FelicitySensorDescription(
+        key="set_battery_float_voltage",
+        name="Setting Battery Float Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        icon="mdi:battery",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
+    ),
+    FelicitySensorDescription(
+        key="set_battery_max_charge_current",
+        name="Setting Battery Max Charge Current",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        icon="mdi:current-ac",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
+    ),
+    FelicitySensorDescription(
+        key="set_battery_max_discharge_current",
+        name="Setting Battery Max Discharge Current",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        icon="mdi:current-ac",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
+    ),
+    FelicitySensorDescription(
+        key="set_zero_export_mode",
+        name="Setting Zero Export Mode",
+        icon="mdi:transmission-tower",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="set_zero_export_power",
+        name="Setting Zero Export Power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        icon="mdi:transmission-tower",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    FelicitySensorDescription(
+        key="set_buzzer_enabled",
+        name="Setting Buzzer Enabled",
+        icon="mdi:volume-high",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+
 )
 
 
@@ -343,6 +468,72 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
             basic = data.get("_basic") or {}
             return basic.get("version")
 
+        # --- Settings (dev set infor) ---
+        settings = data.get("_settings") or {}
+
+        if key == "settings_summary":
+            return len(settings) if isinstance(settings, dict) and settings else None
+
+        def sget(name: str):
+            try:
+                return settings.get(name)
+            except Exception:
+                return None
+
+        if key == "set_operating_mode":
+            return sget("OperM")
+
+        if key == "set_ac_nominal_voltage":
+            raw = sget("Aorvol")
+            return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
+
+        if key == "set_grid_over_voltage":
+            raw = sget("FGOV")
+            return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
+
+        if key == "set_grid_under_voltage":
+            raw = sget("FGUV")
+            return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
+
+        if key == "set_grid_over_frequency":
+            raw = sget("FGOFq")
+            return round(raw / 100.0, 2) if isinstance(raw, (int, float)) else None
+
+        if key == "set_grid_under_frequency":
+            raw = sget("FGUF")
+            return round(raw / 100.0, 2) if isinstance(raw, (int, float)) else None
+
+        if key == "set_battery_type":
+            return sget("batTy")
+
+        if key == "set_battery_count":
+            return sget("BNum")
+
+        if key == "set_battery_charge_voltage":
+            raw = sget("BChgV")
+            return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
+
+        if key == "set_battery_float_voltage":
+            raw = sget("BFChV")
+            return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
+
+        if key == "set_battery_max_charge_current":
+            raw = sget("BMChC")
+            return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
+
+        if key == "set_battery_max_discharge_current":
+            raw = sget("BMDCu")
+            return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
+
+        if key == "set_zero_export_mode":
+            return sget("ZEMode")
+
+        if key == "set_zero_export_power":
+            return sget("ZeroEP")
+
+        if key == "set_buzzer_enabled":
+            return sget("buzEn")
+
         return None
 
     @property
@@ -359,6 +550,16 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
                 "BMSFlg": data.get("BMSFlg"),
                 "BFlgAll": data.get("BFlgAll"),
                 "date": data.get("date"),
+            }
+
+        if key == "settings_summary":
+            settings = data.get("_settings") or {}
+            packs = data.get("_settings_packs") or []
+            return {
+                "pack_count": len(packs) if isinstance(packs, list) else None,
+                "ttlPack": settings.get("ttlPack") if isinstance(settings, dict) else None,
+                "last_index": settings.get("index") if isinstance(settings, dict) else None,
+                "settings": settings,
             }
 
         return None

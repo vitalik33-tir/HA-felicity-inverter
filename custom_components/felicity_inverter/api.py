@@ -52,12 +52,20 @@ class FelicityClient:
         try:
             set_raw = await self._async_read_raw(b"wifilocalMonitor:get dev set infor")
             parts = self._parse_all_json_objects(set_raw)
+
+            # Device may return multiple JSON objects back-to-back (ttlPack/index).
+            # Keep both: merged dict (easy lookup) and raw packs (debug).
             merged: Dict[str, Any] = {}
+            packs: List[Dict[str, Any]] = []
             for p in parts:
                 if isinstance(p, dict):
+                    packs.append(p)
                     merged.update(p)
+
             if merged:
                 data["_settings"] = merged
+            if packs:
+                data["_settings_packs"] = packs
         except Exception as err:
             _LOGGER.debug("Failed to read settings info: %s", err)
 
