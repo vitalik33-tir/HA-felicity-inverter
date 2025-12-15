@@ -2,7 +2,7 @@
   "domain": "felicity_inverter",
   "name": "Felicity Inverter",
   "description": "Home Assistant custom integration for Felicity inverter via local TCP API (port 53970).",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "documentation": "https://github.com/vitalik33-tir/HA-felicity-inverter",
   "requirements": [],
   "codeowners": [
