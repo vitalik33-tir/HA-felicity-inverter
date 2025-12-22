@@ -2,6 +2,8 @@ from __future__ import annotations
 # -*- coding: utf-8 -*-
 
 from dataclasses import dataclass
+from datetime import datetime
+import math
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -61,7 +63,7 @@ SENSOR_DESCRIPTIONS: tuple[FelicitySensorDescription, ...] = (
         icon="mdi:gauge",
         suggested_display_precision=1,
     ),
-        FelicitySensorDescription(
+    FelicitySensorDescription(
         key="bus_voltage_p",
         name="DC Bus Voltage",
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
@@ -242,298 +244,298 @@ SENSOR_DESCRIPTIONS: tuple[FelicitySensorDescription, ...] = (
     # NOTE: We expose 8 groups x 4 periods. Values are converted to kWh.
     FelicitySensorDescription(
         key="energy_pv_today",
-        name="PV Energy Today",
+        name="PV энергия за день",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:solar-power",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_pv_month",
-        name="PV Energy Month",
+        name="PV энергия за месяц",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:solar-power",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_pv_year",
-        name="PV Energy Year",
+        name="PV энергия за год",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:solar-power",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_pv_total",
-        name="PV Energy Total",
+        name="PV энергия всего",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:solar-power",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
 
     FelicitySensorDescription(
         key="energy_backup_load_today",
-        name="Backup Load Energy Today",
+        name="Резервная нагрузка за день",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:home-lightning-bolt",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_backup_load_month",
-        name="Backup Load Energy Month",
+        name="Резервная нагрузка за месяц",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:home-lightning-bolt",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_backup_load_year",
-        name="Backup Load Energy Year",
+        name="Резервная нагрузка за год",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:home-lightning-bolt",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_backup_load_total",
-        name="Backup Load Energy Total",
+        name="Резервная нагрузка всего",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:home-lightning-bolt",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
 
     FelicitySensorDescription(
         key="energy_grid_import_today",
-        name="Grid Import Energy Today",
+        name="Потребляемая энергия за день",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower-import",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_grid_import_month",
-        name="Grid Import Energy Month",
+        name="Потребляемая энергия за месяц",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower-import",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_grid_import_year",
-        name="Grid Import Energy Year",
+        name="Потребляемая энергия за год",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower-import",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_grid_import_total",
-        name="Grid Import Energy Total",
+        name="Потребляемая энергия всего",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:transmission-tower-import",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
 
     FelicitySensorDescription(
         key="energy_grid_export_today",
-        name="Grid Export Energy Today",
+        name="Мощность питания за день",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower-export",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_grid_export_month",
-        name="Grid Export Energy Month",
+        name="Мощность питания за месяц",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower-export",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_grid_export_year",
-        name="Grid Export Energy Year",
+        name="Мощность питания за год",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower-export",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_grid_export_total",
-        name="Grid Export Energy Total",
+        name="Мощность питания всего",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:transmission-tower-export",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
 
     FelicitySensorDescription(
         key="energy_battery_charge_today",
-        name="Battery Charge Energy Today",
+        name="Заряд АКБ за день",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-charging",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_battery_charge_month",
-        name="Battery Charge Energy Month",
+        name="Заряд АКБ за месяц",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-charging",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_battery_charge_year",
-        name="Battery Charge Energy Year",
+        name="Заряд АКБ за год",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-charging",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_battery_charge_total",
-        name="Battery Charge Energy Total",
+        name="Заряд АКБ всего",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:battery-charging",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
 
     FelicitySensorDescription(
         key="energy_battery_discharge_today",
-        name="Battery Discharge Energy Today",
+        name="Разряд АКБ за день",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-minus",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_battery_discharge_month",
-        name="Battery Discharge Energy Month",
+        name="Разряд АКБ за месяц",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-minus",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_battery_discharge_year",
-        name="Battery Discharge Energy Year",
+        name="Разряд АКБ за год",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-minus",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_battery_discharge_total",
-        name="Battery Discharge Energy Total",
+        name="Разряд АКБ всего",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:battery-minus",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
 
     FelicitySensorDescription(
         key="energy_home_load_today",
-        name="Home Load Energy Today",
+        name="Домашняя нагрузка за день",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:home",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_home_load_month",
-        name="Home Load Energy Month",
+        name="Домашняя нагрузка за месяц",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:home",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_home_load_year",
-        name="Home Load Energy Year",
+        name="Домашняя нагрузка за год",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:home",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_home_load_total",
-        name="Home Load Energy Total",
+        name="Домашняя нагрузка всего",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:home",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
 
     FelicitySensorDescription(
         key="energy_total_load_today",
-        name="Total Load Energy Today",
+        name="Общая нагрузка за день",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:home-lightning-bolt-outline",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_total_load_month",
-        name="Total Load Energy Month",
+        name="Общая нагрузка за месяц",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:home-lightning-bolt-outline",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_total_load_year",
-        name="Total Load Energy Year",
+        name="Общая нагрузка за год",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:home-lightning-bolt-outline",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
     FelicitySensorDescription(
         key="energy_total_load_total",
-        name="Total Load Energy Total",
+        name="Общая нагрузка всего",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:home-lightning-bolt-outline",
-        suggested_display_precision=3,
+        suggested_display_precision=2,
     ),
 
 
@@ -889,6 +891,11 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
 
+        # Cache for glitch-filtering inverter-reported *_today energy counters
+        self._energy_today_last_kwh: float | None = None
+        self._energy_today_last_ts: datetime | None = None
+        self._energy_today_last_date: str | None = None
+
     @property
     def device_info(self) -> dict[str, Any]:
         """Return device info to group entities into one device."""
@@ -945,6 +952,14 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
             if digits is not None and isinstance(cur, (int, float)):
                 cur = round(cur, digits)
             return cur
+
+        def trunc_decimals(value: float, digits: int) -> float:
+            """Truncate (not round) a float to a fixed number of decimals.
+
+            The vendor app appears to *truncate* kWh values (e.g. 46.649 -> 46.64).
+            """
+            factor = 10 ** digits
+            return math.trunc(value * factor) / factor
 
         if key == "battery_soc":
             raw = get_nested(("Batsoc", 0, 0))
@@ -1014,16 +1029,75 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
             raw = get_nested(("ACout", 3, 2))
             return round(raw, 0) if isinstance(raw, (int, float)) else None
 
+        def _pv_is_aggregated() -> bool:
+            """Detect aggregated PV layout used by some firmwares.
+
+            Observed layouts in `real infor`:
+              * Per-MPPT: PV[0]=[V1,I1,P1], PV[1]=[V2,I2,P2], PV[2]=[V3,I3,P3], PV[3]=[Ptotal]
+              * Aggregated: PV[0]=[Vpv,0,0], PV[1]=[Ipv*10,0,0], PV[2]=[Ppv,0,0], PV[3]=[Ptotal]
+            """
+            v0 = get_nested(("PV", 0, 0))
+
+            # Voltage is usually tens/hundreds of volts => raw > 500 (>= 50.0V).
+            if not (isinstance(v0, (int, float)) and v0 > 500):
+                return False
+
+            # If PV[0][1] (current) or PV[0][2] (power) contains meaningful values,
+            # assume per-MPPT layout.
+            i0 = get_nested(("PV", 0, 1))
+            p0 = get_nested(("PV", 0, 2))
+            if isinstance(i0, (int, float)) and i0 != 0:
+                return False
+            if isinstance(p0, (int, float)) and p0 != 0:
+                return False
+
+            v1 = get_nested(("PV", 1, 0))
+            p2 = get_nested(("PV", 2, 0))
+            pt = get_nested(("PV", 3, 0))
+
+            # Heuristic: PV[1][0] looks like current*10 (0..30A => raw 0..300)
+            current_like = isinstance(v1, (int, float)) and 0 < v1 < 300
+
+            # Heuristic: PV[2][0] is close to PV[3][0] (both are power in watts)
+            power_like = (
+                isinstance(pt, (int, float))
+                and isinstance(p2, (int, float))
+                and pt >= 0
+                and p2 >= 0
+                and abs(pt - p2) <= max(5.0, 0.05 * max(pt, 1.0))
+                and p2 < 20000
+            )
+
+            return current_like or power_like
+
 
         if key == "pv1_voltage":
             raw = get_nested(("PV", 0, 0))
             return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
 
         if key == "pv1_current":
-            raw = get_nested(("PV", 0, 1))
-            return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
+            raw_i = get_nested(("PV", 0, 1))
+            if _pv_is_aggregated():
+                raw_i = get_nested(("PV", 1, 0))
+            return round(raw_i / 10.0, 1) if isinstance(raw_i, (int, float)) else None
 
         if key == "pv1_power":
+            # Some firmwares expose PV as an "aggregated" matrix:
+            #   PV[0] = [Vpv, V2, V3]
+            #   PV[1] = [Ipv*10, I2*10, I3*10]
+            #   PV[2] = [Ppv, P2, P3]
+            #   PV[3] = [Ptotal]
+            # In this layout PV1 power is PV[2][0] (not PV[0][2]).
+            if _pv_is_aggregated():
+                p1 = get_nested(("PV", 2, 0))
+                total = get_nested(("PV", 3, 0))
+                if isinstance(p1, (int, float)):
+                    # Some firmwares keep PV[2][0]=0 while total has value.
+                    if p1 == 0 and isinstance(total, (int, float)) and total != 0:
+                        return round(total, 0)
+                    return round(p1, 0)
+                return round(total, 0) if isinstance(total, (int, float)) else None
+
             # Some firmwares report PV total power only, leaving PV1 power at 0.
             # If PV2 is missing/zero, map PV1 Power to PV Total Power.
             p1 = get_nested(("PV", 0, 2))
@@ -1047,26 +1121,38 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
             return round(p1, 0) if isinstance(p1, (int, float)) else (round(total, 0) if isinstance(total, (int, float)) else None)
 
         if key == "pv2_voltage":
+            if _pv_is_aggregated():
+                return 0.0
             raw = get_nested(("PV", 1, 0))
             return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
 
         if key == "pv2_current":
+            if _pv_is_aggregated():
+                return 0.0
             raw = get_nested(("PV", 1, 1))
             return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
 
         if key == "pv2_power":
+            if _pv_is_aggregated():
+                return 0.0
             raw = get_nested(("PV", 1, 2))
             return round(raw, 0) if isinstance(raw, (int, float)) else None
 
         if key == "pv3_voltage":
+            if _pv_is_aggregated():
+                return 0.0
             raw = get_nested(("PV", 2, 0))
             return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
 
         if key == "pv3_current":
+            if _pv_is_aggregated():
+                return 0.0
             raw = get_nested(("PV", 2, 1))
             return round(raw / 10.0, 1) if isinstance(raw, (int, float)) else None
 
         if key == "pv3_power":
+            if _pv_is_aggregated():
+                return 0.0
             raw = get_nested(("PV", 2, 2))
             return round(raw, 0) if isinstance(raw, (int, float)) else None
 
@@ -1120,7 +1206,62 @@ class FelicitySensor(CoordinatorEntity, SensorEntity):
         if key in energy_map:
             g, i = energy_map[key]
             raw = get_nested(("Energy", g, i))
-            return round(raw / 1000.0, 3) if isinstance(raw, (int, float)) else None
+            if not isinstance(raw, (int, float)):
+                return None
+
+            kwh = trunc_decimals(raw / 1000.0, 2)
+
+            # The inverter sometimes outputs a short-lived glitch for *_today values
+            # (e.g., after a nightly reboot), where "today" momentarily includes
+            # yesterday's kWh. This causes large vertical spikes in HA History.
+            # We suppress implausible upward jumps based on the time delta between
+            # payload timestamps.
+            if key.endswith("_today"):
+                date_str = data.get("date")
+
+                # Avoid mutating caches multiple times for the same payload.
+                if (
+                    date_str
+                    and date_str == self._energy_today_last_date
+                    and self._energy_today_last_kwh is not None
+                ):
+                    return self._energy_today_last_kwh
+
+                ts = None
+                if isinstance(date_str, str) and len(date_str) >= 14:
+                    try:
+                        ts = datetime.strptime(date_str[:14], "%Y%m%d%H%M%S")
+                    except Exception:
+                        ts = None
+
+                if (
+                    self._energy_today_last_kwh is not None
+                    and self._energy_today_last_ts is not None
+                    and ts is not None
+                ):
+                    dt = (ts - self._energy_today_last_ts).total_seconds()
+                    if dt < 0:
+                        dt = 0
+
+                    # Conservative upper bound: 20 kW equivalent + 0.5 kWh margin.
+                    max_kw = 20.0
+                    allowed_jump = (max_kw * (dt / 3600.0)) + 0.5
+
+                    if (kwh - self._energy_today_last_kwh) > allowed_jump:
+                        # Keep previous value, but advance "seen" timestamp/date
+                        # so we don't repeatedly process the same payload.
+                        self._energy_today_last_ts = ts
+                        self._energy_today_last_date = date_str
+                        return self._energy_today_last_kwh
+
+                # Accept new value
+                if ts is not None:
+                    self._energy_today_last_ts = ts
+                self._energy_today_last_kwh = kwh
+                self._energy_today_last_date = date_str
+                return kwh
+
+            return kwh
 
 
         if key == "temp_1":
