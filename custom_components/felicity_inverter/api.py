@@ -1,99 +1,96 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 import json
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any
+
+from .protocol import POLL_COMMANDS
 
 _LOGGER = logging.getLogger(__name__)
 
+_CONNECT_TIMEOUT = 5.0
+_READ_TIMEOUT = 0.5
+_MAX_READ_ITERATIONS = 20
+
 
 class FelicityApiError(Exception):
-    """Error while communicating with Felicity inverter."""
+    """Error while communicating with a Felicity inverter."""
+
+
+@dataclass(slots=True)
+class ParsedResponse:
+    """Structured response for a single inverter command."""
+
+    command: str
+    raw: str | None
+    objects: list[dict[str, Any]]
+
+
+@dataclass(slots=True)
+class RawPollData:
+    """All raw responses collected during a polling cycle."""
+
+    responses: dict[str, ParsedResponse]
 
 
 class FelicityClient:
-    """TCP client for Felicity inverter local API."""
+    """TCP client for the Felicity WiFi telemetry interface."""
 
     def __init__(self, host: str, port: int) -> None:
         self._host = host
         self._port = port
 
-    async def async_get_data(self) -> dict:
-        """Send commands and combine all data into one dict.
+    async def async_fetch_data(self) -> RawPollData:
+        """Poll inverter TCP telemetry and return raw structured responses."""
+        responses: dict[str, ParsedResponse] = {}
 
-        Commands:
-          - wifilocalMonitor:get dev real infor   -> runtime telemetry (JSON)
-          - wifilocalMonitor:get dev basice infor -> versions / type (JSON)
-          - wifilocalMonitor:get dev set infor    -> settings (can be multiple JSON objects glued)
-        """
-        data: Dict[str, Any] = {}
+        responses["real"] = await self._async_fetch_command(POLL_COMMANDS["real"])
+        if not responses["real"].objects:
+            raise FelicityApiError("Runtime telemetry response did not contain valid JSON objects")
 
-        # 1) Runtime
-        real_raw = await self._async_read_raw(b"wifilocalMonitor:get dev real infor")
-        real = self._parse_first_json_object(real_raw)
-        if not isinstance(real, dict):
-            raise FelicityApiError(f"Unexpected runtime payload: {real_raw!r}")
-        data.update(real)
+        for key in ("basic", "set"):
+            command = POLL_COMMANDS[key]
+            try:
+                responses[key] = await self._async_fetch_command(command)
+            except FelicityApiError as err:
+                _LOGGER.debug("Optional command %s failed: %s", command, err)
+                responses[key] = ParsedResponse(command=command, raw=None, objects=[])
 
-        # 2) Basic info
+        return RawPollData(responses=responses)
+
+    async def _async_fetch_command(self, command: str) -> ParsedResponse:
+        raw = await self._async_read_raw(command)
+        objects = split_json_objects(raw)
+        return ParsedResponse(command=command, raw=raw, objects=objects)
+
+    async def _async_read_raw(self, command: str) -> str:
+        """Open a TCP socket, send a command, and return the raw response text."""
         try:
-            basic_raw = await self._async_read_raw(
-                b"wifilocalMonitor:get dev basice infor"
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(self._host, self._port),
+                timeout=_CONNECT_TIMEOUT,
             )
-            basic = self._parse_first_json_object(basic_raw)
-            if isinstance(basic, dict):
-                data["_basic"] = basic
-        except Exception as err:
-            _LOGGER.debug("Failed to read basic info: %s", err)
-
-        # 3) Settings (may be multiple JSON objects in one response)
-        try:
-            set_raw = await self._async_read_raw(b"wifilocalMonitor:get dev set infor")
-            parts = self._parse_all_json_objects(set_raw)
-
-            # Device may return multiple JSON objects back-to-back (ttlPack/index).
-            # Keep both: merged dict (easy lookup) and raw packs (debug).
-            merged: Dict[str, Any] = {}
-            packs: List[Dict[str, Any]] = []
-            for p in parts:
-                if isinstance(p, dict):
-                    packs.append(p)
-                    merged.update(p)
-
-            if merged:
-                data["_settings"] = merged
-            if packs:
-                data["_settings_packs"] = packs
-        except Exception as err:
-            _LOGGER.debug("Failed to read settings info: %s", err)
-
-        return data
-
-    async def _async_read_raw(self, command: bytes) -> str:
-        """Open TCP, send command, read response as text."""
-        try:
-            reader, writer = await asyncio.open_connection(self._host, self._port)
         except Exception as err:
             raise FelicityApiError(
                 f"Error connecting to {self._host}:{self._port}: {err}"
             ) from err
 
         try:
-            writer.write(command)
+            writer.write(command.encode("ascii") + b"\n")
             await writer.drain()
 
-            data = b""
-            # Some devices send one or several JSON objects back-to-back.
-            for _ in range(40):
+            chunks: list[bytes] = []
+            for _ in range(_MAX_READ_ITERATIONS):
                 try:
-                    chunk = await asyncio.wait_for(reader.read(2048), timeout=0.5)
+                    chunk = await asyncio.wait_for(reader.read(4096), timeout=_READ_TIMEOUT)
                 except asyncio.TimeoutError:
                     break
                 if not chunk:
                     break
-                data += chunk
+                chunks.append(chunk)
         except Exception as err:
             raise FelicityApiError(
                 f"Error talking to {self._host}:{self._port}: {err}"
@@ -105,60 +102,129 @@ class FelicityClient:
             except Exception:
                 pass
 
-        if not data:
+        if not chunks:
             raise FelicityApiError("No data received from inverter")
 
-        text = data.decode("ascii", errors="ignore").strip()
-        _LOGGER.debug("Raw Felicity response for %r: %r", command, text)
-        return text
+        raw = b"".join(chunks).decode("utf-8", errors="ignore").strip()
+        _LOGGER.debug("Raw Felicity response for %s: %r", command, raw)
+        return raw
 
-    # ------------------------- JSON helpers -------------------------
 
-    @staticmethod
-    def _normalize_payload(text: str) -> str:
-        # Device sometimes returns single quotes or Python-ish None.
-        norm = text.strip().replace("\r", "").replace("\n", "")
-        norm = norm.replace("'", '"')
-        norm = re.sub(r"\bNone\b", "null", norm)
-        return norm
+def split_json_objects(raw: str) -> list[dict[str, Any]]:
+    """Split concatenated JSON objects using brace depth and parse them."""
+    normalized = _normalize_payload(raw)
+    objects: list[dict[str, Any]] = []
+    first_device_serial: str | None = None
+    block: list[str] = []
+    depth = 0
+    in_string = False
+    escape = False
 
-    def _parse_all_json_objects(self, text: str) -> List[Any]:
-        norm = self._normalize_payload(text)
+    for char in normalized:
+        if depth == 0 and char != "{":
+            continue
 
-        # Fast path: whole payload is one JSON object.
+        if char == '"' and not escape:
+            in_string = not in_string
+
+        if char == "\\" and in_string and not escape:
+            escape = True
+        else:
+            escape = False
+
+        if char == "{" and not in_string:
+            depth += 1
+
+        if depth > 0:
+            block.append(char)
+
+        if char == "}" and not in_string and depth > 0:
+            depth -= 1
+            if depth == 0 and block:
+                candidate = "".join(block)
+                block = []
+                try:
+                    parsed = json.loads(candidate)
+                except json.JSONDecodeError as err:
+                    _LOGGER.debug("Skipping invalid JSON chunk %r: %s", candidate, err)
+                    continue
+                if isinstance(parsed, dict):
+                    normalized_object, first_device_serial = _normalize_parsed_object(
+                        parsed,
+                        first_device_serial=first_device_serial,
+                    )
+                    objects.append(normalized_object)
+
+    return objects
+
+
+def merge_json_objects(objects: list[dict[str, Any]]) -> dict[str, Any]:
+    """Merge parsed JSON objects using last-write-wins updates."""
+    merged: dict[str, Any] = {}
+    for obj in objects:
+        if isinstance(obj, dict):
+            merged.update(obj)
+    return merged
+
+
+def _normalize_payload(raw: str) -> str:
+    """Normalize slightly malformed JSON-ish payloads to valid JSON."""
+    normalized = raw.strip().replace("\r", "").replace("\n", "")
+    normalized = normalized.replace("'", '"')
+    normalized = re.sub(r"\bNone\b", "null", normalized)
+    return normalized
+
+
+def _normalize_parsed_object(
+    parsed: dict[str, Any],
+    *,
+    first_device_serial: str | None,
+) -> tuple[dict[str, Any], str | None]:
+    """Apply app-observed per-object normalization before decoding."""
+    normalized = dict(parsed)
+
+    device_serial = _text_value(normalized.get("DevSN"))
+    if first_device_serial is None and device_serial is not None:
+        first_device_serial = device_serial
+
+    mod_addr = _text_value(normalized.get("modID")) or _text_value(normalized.get("ModAddr"))
+    if mod_addr is not None:
+        normalized["ModAddr"] = mod_addr
+        normalized["modID"] = mod_addr
+        if device_serial is None:
+            parent_serial = _text_value(normalized.get("InvSN")) or first_device_serial
+            if parent_serial is not None:
+                normalized["DevSN"] = f"{parent_serial}-{mod_addr}"
+
+    if "Energy" not in normalized and "Energy3" in normalized:
+        normalized["Energy"] = normalized["Energy3"]
+
+    if "M1SwVer" in normalized or "M2SwVer" in normalized:
+        for key, value in list(normalized.items()):
+            if str(key).lower().endswith("ver") and _is_version_sentinel(value):
+                normalized[key] = ""
+
+    return normalized, first_device_serial
+
+
+def _text_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _is_version_sentinel(value: Any) -> bool:
+    if isinstance(value, bool) or value is None:
+        return False
+    if isinstance(value, (int, float)):
+        return abs(int(value)) == 65535
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return False
         try:
-            return [json.loads(norm)]
-        except Exception:
-            pass
-
-        # Extract multiple JSON objects using brace depth.
-        objs: List[str] = []
-        depth = 0
-        start = None
-        for i, ch in enumerate(norm):
-            if ch == "{":
-                if depth == 0:
-                    start = i
-                depth += 1
-            elif ch == "}":
-                if depth > 0:
-                    depth -= 1
-                    if depth == 0 and start is not None:
-                        objs.append(norm[start : i + 1])
-                        start = None
-
-        if not objs:
-            # Fallback: non-greedy
-            objs = re.findall(r"\{.*?\}", norm)
-
-        parsed: List[Any] = []
-        for obj in objs:
-            try:
-                parsed.append(json.loads(obj))
-            except Exception as err:
-                _LOGGER.debug("Skip invalid JSON chunk %r: %s", obj, err)
-        return parsed
-
-    def _parse_first_json_object(self, text: str) -> Any:
-        parts = self._parse_all_json_objects(text)
-        return parts[0] if parts else None
+            return abs(int(float(stripped))) == 65535
+        except ValueError:
+            return False
+    return False
