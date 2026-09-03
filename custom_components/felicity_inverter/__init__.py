@@ -1,9 +1,11 @@
 from __future__ import annotations
 # -*- coding: utf-8 -*-
 
+from dataclasses import replace
 from datetime import timedelta
 import logging
 
+from homeassistant.components.sensor import SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
@@ -19,6 +21,19 @@ from .const import (
     PLATFORMS,
 )
 _LOGGER = logging.getLogger(__name__)
+
+
+def _restore_energy_statistics_state_classes() -> None:
+    """Keep periodic energy counters eligible for long-term statistics."""
+    from . import sensor as sensor_platform
+
+    periodic_suffixes = ("_today", "_month", "_year")
+    sensor_platform.SENSOR_DESCRIPTIONS = tuple(
+        replace(desc, state_class=SensorStateClass.TOTAL_INCREASING)
+        if desc.key.startswith("energy_") and desc.key.endswith(periodic_suffixes)
+        else desc
+        for desc in sensor_platform.SENSOR_DESCRIPTIONS
+    )
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -53,8 +68,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {
         "client": client,
         "coordinator": coordinator,
-            }
+    }
 
+    _restore_energy_statistics_state_classes()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
